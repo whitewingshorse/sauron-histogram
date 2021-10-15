@@ -12,7 +12,7 @@ console_error_panic_hook = { version = "0.1"}
 chrono = { version = "0.4", features = ["serde", "wasmbind"] }
 log = "0.4"
 console_log = {version ="0.2", features = ["color"]}
-sauron = "0.40"
+sauron = "0.43"
 serde = { version = "1.0", features = ["serde_derive"]}
 serde_json = { version = "1.0.63" }
 thiserror = "1.0"
