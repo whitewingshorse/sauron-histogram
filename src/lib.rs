@@ -19,9 +19,47 @@ pub struct Histogram {
     pub caption: String,
     pub labels_x: Vec<String>,
     pub series: Vec<Series<u64>>,
+    /// effective width
+    ew: i32,
+    /// effective height
+    eh: i32,
+    pad_left: i32,
+    pad_right: i32,
+    pad_top: i32,
+    pad_bottom: i32,
 }
 
 impl Histogram {
+    pub fn new(
+        w: i32,
+        h: i32,
+        description: String,
+        caption: String,
+        labels_x: Vec<String>,
+        series: Vec<Series<u64>>,
+    ) -> Self {
+        let pad_left = 60;
+        let pad_right = 15;
+        let pad_top = 45;
+        let pad_bottom = 25;
+        let ew = w - pad_left - pad_right;
+        let eh = h - pad_top - pad_bottom;
+        Self {
+            w,
+            h,
+            description,
+            caption,
+            labels_x,
+            series,
+            ew,
+            eh,
+            pad_left,
+            pad_right,
+            pad_top,
+            pad_bottom,
+        }
+    }
+
     pub fn background_def<T>(
         &self,
     ) -> sauron::mt_dom::Node<&'static str, &'static str, &'static str, AttributeValue<T>> {
@@ -29,10 +67,10 @@ impl Histogram {
             [
                 id("gradient-1"),
                 gradientUnits("userSpaceOnUse"),
-                cx(545),
-                cy(213),
-                r(500),
-                gradientTransform("matrix(0.7, 0, 0, 0.4642, 0, 130)"),
+                cx(self.w * 2 / 3),
+                cy(self.h / 2),
+                r(self.h),
+                gradientTransform("matrix(0.8, 0, 0, 0.4642, 0, 130)"),
             ],
             [
                 stop([style("stop-color", "rgb(99, 84, 84)"), offset(0)], []),
@@ -62,10 +100,10 @@ impl Histogram {
     ) -> sauron::mt_dom::Node<&'static str, &'static str, &'static str, AttributeValue<T>> {
         rect(
             [
-                x(79.6),
-                y(59.6),
-                width(690),
-                height(360),
+                x(self.pad_left),
+                y(self.pad_top),
+                width(self.ew),
+                height(self.eh),
                 style("fill", "url(#pattern-2)"),
                 style("fill-opacity", "0.2"),
                 style("stroke", "rgb(105, 105, 104)"),
@@ -163,24 +201,21 @@ impl Histogram {
         )
     }
 
-    pub fn x_axis<T>(
+    pub fn x_axis_labels<T>(
         &self,
     ) -> sauron::mt_dom::Node<&'static str, &'static str, &'static str, AttributeValue<T>> {
-        g(
-            [class("x-axis"), transform("matrix(1, 0, 0, 1, 32, 12)")],
-            [
-                svg::tags::text([y(430), x(40)], [text("1960")]),
-                svg::tags::text([y(430), x(118)], [text("1965")]),
-                svg::tags::text([y(430), x(196)], [text("1970")]),
-                svg::tags::text([y(430), x(274)], [text("1975")]),
-                svg::tags::text([y(430), x(352)], [text("1980")]),
-                svg::tags::text([y(430), x(430)], [text("1985")]),
-                svg::tags::text([y(430), x(508)], [text("1990")]),
-                svg::tags::text([y(430), x(586)], [text("1995")]),
-                svg::tags::text([y(430), x(664)], [text("2000")]),
-                svg::tags::text([y(430), x(742)], [text("2005")]),
-            ],
-        )
+        let yy = self.h - self.pad_bottom + 15;
+        let dx = (self.ew / self.labels_x.len() as i32) as usize;
+        let xoffs = self.pad_left as usize + 20;
+        let children: Vec<
+            sauron::mt_dom::Node<&'static str, &'static str, &'static str, AttributeValue<T>>,
+        > = self
+            .labels_x
+            .iter()
+            .enumerate()
+            .map(|(i, s)| svg::tags::text([y(yy), x(xoffs + i * dx)], [text(s.clone())]))
+            .collect();
+        g([class("x-axis")], children)
     }
 
     pub fn view<T>(&self) -> Node<T> {
@@ -195,7 +230,7 @@ impl Histogram {
             ),
             self.background(),
             self.border(),
-            self.x_axis(),
+            self.x_axis_labels(),
             self.y_axis(),
         ];
         self.caption().iter().for_each(|c| children.push(c.clone()));
@@ -282,12 +317,12 @@ pub fn main() {
             Some(55125308),
         ],
     };
-    let appstate = Histogram {
-        w: 800,
-        h: 500,
-        description: "Histogram Example".to_owned(),
-        caption: "Rewards Distribution".to_owned(),
-        labels_x: vec![
+    let appstate = Histogram::new(
+        800,
+        400,
+        "Histogram Example".to_owned(),
+        "Rewards Distribution".to_owned(),
+        vec![
             "Jul 14".to_owned(),
             "Jul 21".to_owned(),
             "Jul 29".to_owned(),
@@ -304,8 +339,8 @@ pub fn main() {
             "Oct 13".to_owned(),
             "Oct 20".to_owned(),
         ],
-        series: vec![s_staked, s_minted],
-    };
+        vec![s_staked, s_minted],
+    );
     // if serialized_state.len() > 0 {
     //     match serde_json::from_str::<AppState>(&serialized_state) {
     //         Ok(state) => {
